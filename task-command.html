@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Task Command | Rebellion Fabrication</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0f0f0f; --sur: #171717; --bdr: #272727;
+    --acc: #c8a96e; --acd: #8a6f3f;
+    --txt: #e8e4dc; --dim: #777; --red: #c0392b;
+    --ff: Georgia, serif;
+  }
+  body { background: var(--bg); color: var(--txt); font-family: var(--ff); min-height: 100vh; }
+
+  /* ── UTILS ── */
+  .page { min-height:100vh; display:flex; align-items:center; justify-content:center; }
+  .card { background:var(--sur); border:1px solid var(--bdr); border-radius:12px; padding:40px; max-width:540px; width:90%; }
+  .logo-badge { width:44px; height:44px; background:var(--acc); color:#000; border-radius:10px; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:13px; letter-spacing:1px; margin-bottom:20px; }
+  .card h1 { font-size:22px; font-weight:700; margin-bottom:8px; }
+  .card p.sub { color:var(--dim); margin-bottom:28px; font-size:14px; line-height:1.6; }
+  .btn { background:var(--acc); color:#000; border:none; padding:10px 18px; border-radius:6px; cursor:pointer; font-weight:700; font-size:13px; font-family:var(--ff); }
+  .btn-full { width:100%; padding:13px; margin-bottom:10px; }
+  .btn-ghost { background:none; border:none; color:var(--dim); cursor:pointer; font-size:12px; font-family:var(--ff); }
+  .input { background:#111; border:1px solid var(--bdr); color:var(--txt); padding:10px 12px; border-radius:6px; font-size:13px; outline:none; font-family:var(--ff); }
+  .err { background:#1a0000; border:1px solid var(--red); color:#ff7070; padding:10px 14px; border-radius:6px; font-size:13px; margin-bottom:16px; }
+  a { color:var(--acc); }
+  code { background:#222; padding:2px 5px; border-radius:3px; font-size:11px; color:var(--acc); word-break:break-all; }
+
+  /* ── SETUP STEPS ── */
+  .steps { display:flex; flex-direction:column; gap:14px; margin-bottom:28px; }
+  .step { display:flex; gap:12px; align-items:flex-start; }
+  .step-n { background:var(--acc); color:#000; width:24px; height:24px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:12px; font-weight:700; flex-shrink:0; margin-top:1px; }
+  .step-t { color:var(--dim); font-size:13px; line-height:1.6; }
+  .input-row { display:flex; gap:8px; margin-bottom:12px; }
+  .note { color:var(--dim); font-size:11px; line-height:1.5; }
+
+  /* ── SPINNER ── */
+  .spinner { width:36px; height:36px; border:3px solid var(--bdr); border-top:3px solid var(--acc); border-radius:50%; animation:spin 1s linear infinite; margin:0 auto 16px; }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  /* ── APP SHELL ── */
+  #app { display:none; flex-direction:column; min-height:100vh; }
+  .hdr { background:var(--sur); border-bottom:1px solid var(--bdr); padding:12px 24px; display:flex; align-items:center; justify-content:space-between; }
+  .hdr-l { display:flex; align-items:center; gap:12px; }
+  .hdr-logo { width:34px; height:34px; background:var(--acc); color:#000; border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:900; font-size:11px; flex-shrink:0; }
+  .hdr-title { font-weight:700; font-size:14px; }
+  .hdr-user { font-size:11px; color:var(--dim); }
+  .hdr-r { display:flex; gap:20px; align-items:center; }
+  .stat { color:var(--dim); font-size:12px; }
+  .body { display:flex; flex:1; }
+
+  /* ── SIDEBAR ── */
+  .side { width:210px; background:var(--sur); border-right:1px solid var(--bdr); padding:20px 0; display:flex; flex-direction:column; }
+  .nav-g { padding:0 10px; display:flex; flex-direction:column; gap:2px; margin-bottom:24px; }
+  .nav-btn { background:none; border:none; color:var(--dim); padding:9px 12px; border-radius:6px; cursor:pointer; text-align:left; font-size:13px; font-family:var(--ff); transition:all 0.15s; }
+  .nav-btn.on { background:#1e1e1e; color:var(--acc); }
+  .list-g { padding:0 10px; display:flex; flex-direction:column; gap:2px; }
+  .sidebar-label { color:var(--dim); font-size:10px; letter-spacing:1.5px; padding:0 12px; margin-bottom:6px; }
+  .list-btn { background:none; border:none; color:var(--dim); padding:8px 12px; border-radius:6px; cursor:pointer; text-align:left; font-size:12px; display:flex; justify-content:space-between; font-family:var(--ff); width:100%; }
+  .list-btn.on { background:#1e1e1e; color:var(--txt); }
+  .badge { background:var(--bdr); color:var(--dim); border-radius:10px; padding:1px 7px; font-size:11px; }
+
+  /* ── MAIN ── */
+  .main { flex:1; padding:28px; overflow:auto; }
+  .content-hdr { display:flex; align-items:baseline; gap:12px; margin-bottom:20px; }
+  .content-hdr h2 { font-size:20px; font-weight:700; }
+  .content-count { color:var(--dim); font-size:13px; }
+  .empty { color:var(--dim); padding:40px 0; text-align:center; font-size:14px; }
+
+  /* ── TASKS ── */
+  .task-row { display:flex; align-items:center; gap:12px; padding:10px 14px; border-radius:6px; background:var(--sur); border:1px solid var(--bdr); margin-bottom:4px; }
+  .check-btn { background:none; border:1.5px solid var(--acd); color:var(--acd); width:22px; height:22px; border-radius:50%; cursor:pointer; font-size:14px; flex-shrink:0; font-family:var(--ff); display:flex; align-items:center; justify-content:center; }
+  .task-title { font-size:14px; color:var(--txt); }
+  .task-due { font-size:11px; color:var(--dim); margin-top:2px; }
+  .task-due.overdue { color:#ff6b6b; }
+  .high-badge { background:var(--acc); color:#000; font-weight:700; font-size:11px; width:18px; height:18px; border-radius:50%; display:flex; align-items:center; justify-content:center; }
+  .quick-add { margin-bottom:16px; }
+  .quick-add input { width:100%; }
+
+  /* ── EMAIL ── */
+  .email-row { padding:14px 16px; background:var(--sur); border:1px solid var(--bdr); border-radius:6px; margin-bottom:6px; }
+  .email-from { font-size:12px; color:var(--acc); font-weight:600; margin-bottom:4px; }
+  .email-subject { font-size:14px; margin-bottom:4px; }
+  .email-preview { font-size:12px; color:var(--dim); line-height:1.5; }
+  .email-date { font-size:11px; color:var(--dim); margin-top:6px; }
+
+  /* ── CHAT ── */
+  .chat-wrap { display:flex; flex-direction:column; height:calc(100vh - 130px); }
+  .chat-msgs { flex:1; overflow:auto; display:flex; flex-direction:column; gap:10px; padding-bottom:12px; }
+  .chat-empty { text-align:center; padding-top:40px; }
+  .chat-empty p { color:var(--dim); margin-bottom:16px; }
+  .suggestion { background:var(--sur); border:1px solid var(--bdr); color:var(--dim); padding:8px 16px; border-radius:20px; cursor:pointer; font-size:13px; font-family:var(--ff); margin-bottom:8px; display:inline-block; }
+  .chat-msg { max-width:76%; padding:10px 14px; border-radius:8px; font-size:13px; line-height:1.6; }
+  .chat-msg.user { background:var(--acc); color:#000; align-self:flex-end; font-weight:500; }
+  .chat-msg.ai { background:var(--sur); color:var(--txt); align-self:flex-start; border:1px solid var(--bdr); }
+  .chat-input-row { display:flex; gap:8px; }
+  .chat-input { flex:1; background:var(--sur); border:1px solid var(--bdr); color:var(--txt); padding:11px 14px; border-radius:6px; font-size:13px; outline:none; font-family:var(--ff); }
+  .chat-send { background:var(--acc); color:#000; border:none; width:42px; border-radius:6px; cursor:pointer; font-size:18px; font-weight:700; }
+
+  /* ── TABS ── */
+  .tab { display:none; }
+  .tab.active { display:block; }
+  .chat-tab { display:none; flex-direction:column; height:calc(100vh - 130px); }
+  .chat-tab.active { display:flex; }
+</style>
+</head>
+<body>
+
+<!-- SETUP SCREEN -->
+<div id="setup-screen" class="page" style="display:none">
+  <div class="card">
+    <div class="logo-badge">RF</div>
+    <h1>One-Time Setup</h1>
+    <p class="sub">Register a free Azure app to connect your Microsoft account.</p>
+    <div class="steps">
+      <div class="step"><span class="step-n">1</span><span class="step-t">Go to <a href="https://portal.azure.com" target="_blank">portal.azure.com</a> → App registrations → New registration</span></div>
+      <div class="step"><span class="step-n">2</span><span class="step-t">Supported account types: <b>"Any Entra ID Tenant + Personal Microsoft accounts"</b></span></div>
+      <div class="step"><span class="step-n">3</span><span class="step-t">Authentication → Single-page application → Redirect URI: <code id="redirect-uri-display"></code></span></div>
+      <div class="step"><span class="step-n">4</span><span class="step-t">Copy the Application (client) ID from Overview and paste below</span></div>
+    </div>
+    <div class="input-row">
+      <input class="input" id="client-id-input" placeholder="Paste Client ID here" style="flex:1" />
+      <button class="btn" onclick="saveClientId()">Connect →</button>
+    </div>
+    <p class="note">Stored in localStorage only. Never transmitted except to Microsoft.</p>
+  </div>
+</div>
+
+<!-- SIGN IN SCREEN -->
+<div id="signin-screen" class="page" style="display:none">
+  <div class="card" style="text-align:center; max-width:360px">
+    <div class="logo-badge" style="margin:0 auto 20px">RF</div>
+    <h1>Task Command</h1>
+    <p class="sub">Microsoft To Do + Flagged Email + AI Assistant</p>
+    <div id="signin-error" class="err" style="display:none"></div>
+    <button class="btn btn-full" onclick="signIn()">Sign in with Microsoft</button>
+    <button class="btn-ghost" onclick="showSetup()">Change Client ID</button>
+  </div>
+</div>
+
+<!-- LOADING SCREEN -->
+<div id="loading-screen" class="page" style="display:none">
+  <div style="text-align:center;color:var(--dim)">
+    <div class="spinner"></div>
+    <p>Loading your tasks & emails…</p>
+  </div>
+</div>
+
+<!-- MAIN APP -->
+<div id="app">
+  <div class="hdr">
+    <div class="hdr-l">
+      <div class="hdr-logo">RF</div>
+      <div>
+        <div class="hdr-title">Task Command</div>
+        <div class="hdr-user" id="hdr-user"></div>
+      </div>
+    </div>
+    <div class="hdr-r">
+      <span class="stat"><b id="total-tasks">0</b> tasks</span>
+      <span class="stat"><b id="total-emails">0</b> flagged</span>
+      <button class="btn-ghost" onclick="signOut()">Sign out</button>
+    </div>
+  </div>
+  <div class="body">
+    <div class="side">
+      <div class="nav-g">
+        <button class="nav-btn on" onclick="switchTab('tasks',this)">☑  To Do</button>
+        <button class="nav-btn" onclick="switchTab('email',this)">✉  Flagged</button>
+        <button class="nav-btn" onclick="switchTab('chat',this)">◈  AI Chat</button>
+      </div>
+      <div class="list-g" id="list-sidebar"></div>
+    </div>
+    <div class="main">
+      <div id="err-banner" class="err" style="display:none"></div>
+
+      <!-- TASKS TAB -->
+      <div id="tab-tasks" class="tab active">
+        <div class="content-hdr">
+          <h2 id="list-title">Tasks</h2>
+          <span class="content-count" id="task-count">0 open</span>
+        </div>
+        <div class="quick-add">
+          <input class="input" id="quick-add-input" placeholder="+ Quick add task (Enter)" style="width:100%" onkeydown="quickAddKey(event)" />
+        </div>
+        <div id="task-list"></div>
+      </div>
+
+      <!-- EMAIL TAB -->
+      <div id="tab-email" class="tab">
+        <div class="content-hdr">
+          <h2>Flagged Emails</h2>
+          <span class="content-count" id="email-count">0 flagged</span>
+        </div>
+        <div id="email-list"></div>
+      </div>
+
+      <!-- CHAT TAB -->
+      <div id="tab-chat" class="chat-tab">
+        <div class="content-hdr">
+          <h2>AI Assistant</h2>
+          <span class="content-count">Knows your tasks & emails</span>
+        </div>
+        <div class="chat-msgs" id="chat-msgs">
+          <div class="chat-empty" id="chat-empty">
+            <p>Try asking:</p>
+            <button class="suggestion" onclick="setSuggestion(this)">What are my most urgent tasks?</button>
+            <button class="suggestion" onclick="setSuggestion(this)">Add task: Review Boys Town RRCE scope</button>
+            <button class="suggestion" onclick="setSuggestion(this)">Which flagged emails need replies?</button>
+          </div>
+        </div>
+        <div class="chat-input-row">
+          <input class="chat-input" id="chat-input" placeholder="Add a task, ask about workload, draft a reply…" onkeydown="chatKey(event)" />
+          <button class="chat-send" onclick="sendChat()">→</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── STATE ──────────────────────────────────────────────────────────────────
+let TOKEN = null;
+let LISTS = [];
+let TASKS = {}; // listId -> []
+let EMAILS = [];
+let SELECTED_LIST = null;
+let CHAT_HISTORY = [];
+
+const CLIENT_ID_KEY = "rf_task_client_id";
+const TOKEN_KEY = "rf_task_token";
+
+// ── INIT ───────────────────────────────────────────────────────────────────
+window.addEventListener("DOMContentLoaded", () => {
+  document.getElementById("redirect-uri-display").textContent = window.location.href.split("#")[0];
+
+  // Check for token in hash (post-redirect from Microsoft)
+  const hash = window.location.hash;
+  if (hash.includes("access_token")) {
+    const params = new URLSearchParams(hash.replace(/^#/, ""));
+    const t = params.get("access_token");
+    if (t) {
+      localStorage.setItem(TOKEN_KEY, t);
+      window.history.replaceState(null, "", window.location.pathname);
+    }
+  }
+
+  TOKEN = localStorage.getItem(TOKEN_KEY);
+  const clientId = localStorage.getItem(CLIENT_ID_KEY);
+
+  if (!clientId) { show("setup-screen"); return; }
+  if (!TOKEN) { show("signin-screen"); return; }
+  loadData();
+});
+
+// ── SCREENS ────────────────────────────────────────────────────────────────
+function show(id) {
+  ["setup-screen","signin-screen","loading-screen","app"].forEach(s => {
+    const el = document.getElementById(s);
+    if (el) el.style.display = (s === id) ? (s === "app" ? "flex" : "flex") : "none";
+  });
+  if (id === "app") document.getElementById("app").style.display = "flex";
+}
+
+function showSetup() { show("setup-screen"); }
+
+function saveClientId() {
+  const val = document.getElementById("client-id-input").value.trim();
+  if (val.length > 10) { localStorage.setItem(CLIENT_ID_KEY, val); show("signin-screen"); }
+}
+document.addEventListener("keydown", e => {
+  if (e.key === "Enter" && document.getElementById("setup-screen").style.display !== "none") saveClientId();
+});
+
+// ── AUTH ───────────────────────────────────────────────────────────────────
+function signIn() {
+  const clientId = localStorage.getItem(CLIENT_ID_KEY);
+  const redirectUri = window.location.href.split("#")[0];
+  const params = new URLSearchParams({
+    client_id: clientId,
+    response_type: "token",
+    redirect_uri: redirectUri,
+    scope: "Tasks.ReadWrite Mail.Read User.Read",
+    response_mode: "fragment",
+    prompt: "select_account",
+    nonce: Math.random().toString(36),
+    state: "auth",
+  });
+  window.location.href = `https://login.microsoftonline.com/common/oauth2/v2.0/authorize?${params}`;
+}
+
+function signOut() {
+  localStorage.removeItem(TOKEN_KEY);
+  TOKEN = null; LISTS = []; TASKS = {}; EMAILS = []; SELECTED_LIST = null;
+  show("signin-screen");
+}
+
+// ── GRAPH ──────────────────────────────────────────────────────────────────
+async function gFetch(path, opts = {}) {
+  const res = await fetch(`https://graph.microsoft.com/v1.0${path}`, {
+    ...opts,
+    headers: { Authorization: `Bearer ${TOKEN}`, "Content-Type": "application/json", ...(opts.headers||{}) }
+  });
+  if (res.status === 401) { signOut(); throw new Error("Session expired. Please sign in again."); }
+  if (!res.ok) { const e = await res.json().catch(()=>({})); throw new Error(e?.error?.message || `Error ${res.status}`); }
+  if (res.status === 204) return null;
+  return res.json();
+}
+
+// ── LOAD DATA ──────────────────────────────────────────────────────────────
+async function loadData() {
+  show("loading-screen");
+  try {
+    const [me, listsData, emailsData] = await Promise.all([
+      gFetch("/me"),
+      gFetch("/me/todo/lists"),
+      gFetch("/me/messages?$filter=flag/flagStatus eq 'flagged'&$top=20&$select=subject,from,receivedDateTime,bodyPreview,id"),
+    ]);
+
+    document.getElementById("hdr-user").textContent = me.displayName || me.mail;
+    LISTS = listsData?.value || [];
+    EMAILS = emailsData?.value || [];
+
+    // Load tasks for all lists
+    await Promise.all(LISTS.map(async l => {
+      const t = await gFetch(`/me/todo/lists/${l.id}/tasks?$filter=status ne 'completed'`);
+      TASKS[l.id] = t?.value || [];
+    }));
+
+    if (LISTS.length) SELECTED_LIST = LISTS[0].id;
+    renderAll();
+    show("app");
+  } catch(e) {
+    if (e.message.includes("expired")) return;
+    document.getElementById("signin-error").textContent = e.message;
+    document.getElementById("signin-error").style.display = "block";
+    show("signin-screen");
+  }
+}
+
+// ── RENDER ─────────────────────────────────────────────────────────────────
+function renderAll() {
+  renderSidebar();
+  renderTasks();
+  renderEmails();
+  updateStats();
+}
+
+function updateStats() {
+  const total = Object.values(TASKS).flat().length;
+  document.getElementById("total-tasks").textContent = total;
+  document.getElementById("total-emails").textContent = EMAILS.length;
+}
+
+function renderSidebar() {
+  const el = document.getElementById("list-sidebar");
+  if (!LISTS.length) { el.innerHTML = ""; return; }
+  el.innerHTML = `<div class="sidebar-label">LISTS</div>` +
+    LISTS.map(l => `<button class="list-btn${l.id===SELECTED_LIST?" on":""}" onclick="selectList('${l.id}',this)">
+      <span>${esc(l.displayName)}</span><span class="badge">${(TASKS[l.id]||[]).length}</span>
+    </button>`).join("");
+}
+
+function renderTasks() {
+  const list = LISTS.find(l=>l.id===SELECTED_LIST);
+  document.getElementById("list-title").textContent = list?.displayName || "Tasks";
+  const tasks = TASKS[SELECTED_LIST] || [];
+  document.getElementById("task-count").textContent = `${tasks.length} open`;
+  const el = document.getElementById("task-list");
+  if (!tasks.length) { el.innerHTML = `<div class="empty">No open tasks in this list.</div>`; return; }
+  el.innerHTML = tasks.map(t => {
+    const due = t.dueDateTime?.dateTime;
+    const overdue = due && new Date(due) < new Date();
+    return `<div class="task-row">
+      <button class="check-btn" onclick="completeTask('${t.id}','${SELECTED_LIST}')" title="Mark complete">○</button>
+      <div style="flex:1">
+        <div class="task-title">${esc(t.title)}</div>
+        ${due ? `<div class="task-due${overdue?" overdue":""}">Due: ${new Date(due).toLocaleDateString()}</div>` : ""}
+      </div>
+      ${t.importance==="high"?`<span class="high-badge">!</span>`:""}
+    </div>`;
+  }).join("");
+}
+
+function renderEmails() {
+  document.getElementById("email-count").textContent = `${EMAILS.length} flagged`;
+  const el = document.getElementById("email-list");
+  if (!EMAILS.length) { el.innerHTML = `<div class="empty">No flagged emails.</div>`; return; }
+  el.innerHTML = EMAILS.map(e => `<div class="email-row">
+    <div class="email-from">${esc(e.from?.emailAddress?.name||e.from?.emailAddress?.address||"")}</div>
+    <div class="email-subject">${esc(e.subject||"")}</div>
+    <div class="email-preview">${esc((e.bodyPreview||"").slice(0,130))}…</div>
+    <div class="email-date">${new Date(e.receivedDateTime).toLocaleDateString()}</div>
+  </div>`).join("");
+}
+
+// ── ACTIONS ────────────────────────────────────────────────────────────────
+function selectList(id, btn) {
+  SELECTED_LIST = id;
+  document.querySelectorAll(".list-btn").forEach(b=>b.classList.remove("on"));
+  btn.classList.add("on");
+  renderTasks();
+}
+
+function switchTab(name, btn) {
+  document.querySelectorAll(".nav-btn").forEach(b=>b.classList.remove("on"));
+  btn.classList.add("on");
+  document.querySelectorAll(".tab").forEach(t=>t.classList.remove("active"));
+  document.querySelectorAll(".chat-tab").forEach(t=>t.classList.remove("active"));
+  const el = document.getElementById(`tab-${name}`);
+  if (el) el.classList.add("active");
+  document.getElementById("list-sidebar").style.display = name==="tasks" ? "flex" : "none";
+}
+
+function quickAddKey(e) { if(e.key==="Enter") addTaskQuick(); }
+
+async function addTaskQuick() {
+  const input = document.getElementById("quick-add-input");
+  const title = input.value.trim();
+  if (!title || !SELECTED_LIST) return;
+  input.value = "";
+  await addTask(title, SELECTED_LIST, null);
+}
+
+async function addTask(title, listId, dueDate) {
+  try {
+    const body = { title, status: "notStarted" };
+    if (dueDate) body.dueDateTime = { dateTime: new Date(dueDate).toISOString(), timeZone: "UTC" };
+    const t = await gFetch(`/me/todo/lists/${listId}/tasks`, { method:"POST", body:JSON.stringify(body) });
+    TASKS[listId] = [t, ...(TASKS[listId]||[])];
+    renderAll();
+    return t;
+  } catch(e) { showErr(e.message); }
+}
+
+async function completeTask(taskId, listId) {
+  try {
+    await gFetch(`/me/todo/lists/${listId}/tasks/${taskId}`, { method:"PATCH", body:JSON.stringify({status:"completed"}) });
+    TASKS[listId] = (TASKS[listId]||[]).filter(t=>t.id!==taskId);
+    renderAll();
+  } catch(e) { showErr(e.message); }
+}
+
+function showErr(msg) {
+  const el = document.getElementById("err-banner");
+  el.textContent = msg; el.style.display = "block";
+  setTimeout(()=>el.style.display="none", 5000);
+}
+
+// ── CHAT ───────────────────────────────────────────────────────────────────
+function setSuggestion(btn) { document.getElementById("chat-input").value = btn.textContent; }
+function chatKey(e) { if(e.key==="Enter") sendChat(); }
+
+async function sendChat() {
+  const input = document.getElementById("chat-input");
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = "";
+  input.disabled = true;
+  document.querySelector(".chat-send").disabled = true;
+
+  document.getElementById("chat-empty").style.display = "none";
+  CHAT_HISTORY.push({ role:"user", content:text });
+  appendChatMsg("user", text);
+
+  const ctx = `LISTS:\n${LISTS.map(l=>`${l.displayName} (${l.id}):\n${(TASKS[l.id]||[]).map(t=>`  [${t.id}] ${t.title}`).join("\n")}`).join("\n")}\n\nFLAGGED EMAILS:\n${EMAILS.map(e=>`[${e.id}] ${e.from?.emailAddress?.name}: "${e.subject}"`).join("\n")}`;
+
+  const thinkEl = appendChatMsg("ai", "Thinking…");
+
+  try {
+    const res = await fetch("https://api.anthropic.com/v1/messages", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        model:"claude-sonnet-4-20250514", max_tokens:1000,
+        system:`You are a productivity assistant helping Matt manage his Microsoft To Do tasks and flagged emails.\nContext:\n${ctx}\nWhen adding a task respond ONLY with JSON: {"action":"add_task","title":"...","listId":"...","dueDate":"..."}\nWhen completing respond ONLY with JSON: {"action":"complete_task","taskId":"...","listId":"..."}\nOtherwise respond conversationally and concisely.`,
+        messages: CHAT_HISTORY
+      })
+    });
+    const data = await res.json();
+    const reply = data.content?.[0]?.text || "No response.";
+    CHAT_HISTORY.push({ role:"assistant", content:reply });
+
+    const m = reply.match(/\{[\s\S]*"action"[\s\S]*\}/);
+    if (m) {
+      try {
+        const a = JSON.parse(m[0]);
+        thinkEl.remove();
+        if (a.action==="add_task") {
+          await addTask(a.title, a.listId||LISTS[0]?.id, a.dueDate||null);
+          appendChatMsg("ai", `✓ Added: "${a.title}"`);
+        } else if (a.action==="complete_task") {
+          await completeTask(a.taskId, a.listId||SELECTED_LIST);
+          appendChatMsg("ai", "✓ Task marked complete.");
+        } else { appendChatMsg("ai", reply); }
+      } catch { thinkEl.textContent = reply; }
+    } else { thinkEl.textContent = reply; }
+  } catch(e) { thinkEl.textContent = `Error: ${e.message}`; }
+
+  input.disabled = false;
+  document.querySelector(".chat-send").disabled = false;
+  input.focus();
+}
+
+function appendChatMsg(role, text) {
+  const msgs = document.getElementById("chat-msgs");
+  const div = document.createElement("div");
+  div.className = `chat-msg ${role}`;
+  div.textContent = text;
+  msgs.appendChild(div);
+  msgs.scrollTop = msgs.scrollHeight;
+  return div;
+}
+
+// ── UTILS ──────────────────────────────────────────────────────────────────
+function esc(str) {
+  return String(str).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+</script>
+</body>
+</html>
