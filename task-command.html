@@ -236,19 +236,34 @@ const TOKEN_KEY = "rf_task_token";
 window.addEventListener("DOMContentLoaded", () => {
   document.getElementById("redirect-uri-display").textContent = window.location.href.split("#")[0];
 
+  // DEBUG: show what we got on landing
+  const debugHash = window.location.hash;
+  const debugHref = window.location.href;
+  console.log("HREF:", debugHref);
+  console.log("HASH:", debugHash);
+
   // Check for token in hash (post-redirect from Microsoft)
-  const hash = window.location.hash;
-  if (hash.includes("access_token")) {
-    const params = new URLSearchParams(hash.replace(/^#/, ""));
+  if (debugHash.includes("access_token")) {
+    const params = new URLSearchParams(debugHash.replace(/^#/, ""));
     const t = params.get("access_token");
+    console.log("TOKEN FOUND:", t ? "yes (length "+t.length+")" : "no");
     if (t) {
       localStorage.setItem(TOKEN_KEY, t);
       window.history.replaceState(null, "", window.location.pathname);
     }
+  } else if (debugHash.includes("error")) {
+    console.log("ERROR IN HASH:", debugHash);
+    // Show error on signin screen
+    document.getElementById("signin-error").textContent = "Auth error: " + debugHash;
+    document.getElementById("signin-error").style.display = "block";
+  } else {
+    console.log("No token or error in hash. Hash was:", debugHash || "(empty)");
   }
 
   TOKEN = localStorage.getItem(TOKEN_KEY);
   const clientId = localStorage.getItem(CLIENT_ID_KEY);
+  console.log("TOKEN IN STORAGE:", TOKEN ? "yes" : "no");
+  console.log("CLIENT ID IN STORAGE:", clientId ? "yes" : "no");
 
   if (!clientId) { show("setup-screen"); return; }
   if (!TOKEN) { show("signin-screen"); return; }
